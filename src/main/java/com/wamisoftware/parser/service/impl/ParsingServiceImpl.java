@@ -30,26 +30,8 @@ public class ParsingServiceImpl implements ParsingService {
 
     @Override
     public Map<String, Long> getResults() {
-        Map<String, ZonedDateTime> start;
-        Map<String, ZonedDateTime> finish;
-
-        try (Stream<String> stream = Files.lines(Path.of(TAG_READ_START))) {
-            start = stream.collect(Collectors.toMap(
-                    k -> k.substring(4, 16),
-                    v -> convertFromUtc(v.substring(20, 32)),
-                    (oldValue, newValue) -> oldValue));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        try (Stream<String> stream = Files.lines(Path.of(TAG_READ_FINISH))) {
-            finish = stream.collect(Collectors.toMap(
-                    k -> k.substring(4, 16),
-                    v -> convertFromKiev(v.substring(20, 32)),
-                    (oldValue, newValue) -> newValue));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        Map<String, ZonedDateTime> start = parseStart();
+        Map<String, ZonedDateTime> finish = parseFinish();
 
         final var result = start.entrySet().stream()
                 .filter(e -> finish.containsKey(e.getKey()))
@@ -63,6 +45,28 @@ public class ParsingServiceImpl implements ParsingService {
                 .limit(10)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                         (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+    }
+
+    private Map<String, ZonedDateTime> parseStart() {
+        try (Stream<String> stream = Files.lines(Path.of(TAG_READ_START))) {
+            return stream.collect(Collectors.toMap(
+                    k -> k.substring(4, 16),
+                    v -> convertFromUtc(v.substring(20, 32)),
+                    (oldValue, newValue) -> oldValue));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Map<String, ZonedDateTime> parseFinish() {
+        try (Stream<String> stream = Files.lines(Path.of(TAG_READ_FINISH))) {
+            return stream.collect(Collectors.toMap(
+                    k -> k.substring(4, 16),
+                    v -> convertFromKiev(v.substring(20, 32)),
+                    (oldValue, newValue) -> newValue));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private ZonedDateTime convertFromUtc(String time) {
